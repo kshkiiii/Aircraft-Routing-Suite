@@ -34,7 +34,7 @@ int main() {
     auto auditRepo = make_shared<AuditRepository>(db);
 
     auto flightService = make_shared<FlightService>(flightRepo, auditRepo);
-    auto authService = make_shared<AuthService>(userRepo);
+    auto authService = make_shared<AuthService>(userRepo, auditRepo);
 
     auto flightController = make_shared<FlightController>(flightService);
     auto authController = make_shared<AuthController>(authService);

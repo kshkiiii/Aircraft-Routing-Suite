@@ -18,9 +18,15 @@ struct PrivateFlightDTO : public PublicFlightDTO {
     int id;
     string arrivalTime;     
     string aircraftModel;
-    string pilotName;      
-    string copilotName;     
+    string pilotName;
+    string copilotName;
     int passengersCount;
+
+    int aircraftId;
+    int pilotId;
+    int copilotId;
+    string depTimeIso; 
+    string arrTimeIso;
 };
 
 struct LoginResponse {
@@ -71,6 +77,15 @@ struct ResourcesDTO {
     vector<ResourceItem> pilots;
 };
 
+struct CreateUserDTO {
+    string username;
+    string password; 
+    string lastName;
+    string firstName;
+    string middleName;
+    string role;
+};
+
 inline crow::json::wvalue flightToJson(const PublicFlightDTO& f) {
     crow::json::wvalue x;
     x["flight_number"] = f.flightNumber;
@@ -88,6 +103,7 @@ inline crow::json::wvalue privateFlightToJson(const PrivateFlightDTO& f) {
     x["flight_number"] = f.flightNumber;
     x["origin"] = f.originCity;
     x["destination"] = f.destinationCity;
+    
     x["dep_time"] = f.scheduledTime;    
     x["arr_time"] = f.arrivalTime;      
     x["status"] = f.status;
@@ -96,6 +112,13 @@ inline crow::json::wvalue privateFlightToJson(const PrivateFlightDTO& f) {
     x["pilot"] = f.pilotName;
     x["copilot"] = f.copilotName;
     x["passengers"] = f.passengersCount;
+
+    x["aircraft_id"] = f.aircraftId;
+    x["pilot_id"] = f.pilotId;
+    x["copilot_id"] = f.copilotId;
+    x["dep_time_iso"] = f.depTimeIso;
+    x["arr_time_iso"] = f.arrTimeIso;
+
     return x;
 }
 

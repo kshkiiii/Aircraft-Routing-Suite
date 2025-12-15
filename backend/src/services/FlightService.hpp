@@ -1,5 +1,6 @@
 #pragma once
 #include "../repositories/FlightRepository.hpp"
+#include "../repositories/AuditRepository.hpp"
 
 using namespace std;
 
@@ -12,17 +13,9 @@ public:
     FlightService(shared_ptr<FlightRepository> r, shared_ptr<AuditRepository> a = nullptr) 
         : repo(r), audit(a) {}
 
-    vector<PublicFlightDTO> getDepartures() {
-        return repo->getPublicFlights(false);
-    }
-
-    vector<PublicFlightDTO> getArrivals() {
-        return repo->getPublicFlights(true);
-    }
-
-    vector<PrivateFlightDTO> getPrivateFlights() {
-        return repo->getAllPrivateFlights();
-    }
+    vector<PublicFlightDTO> getDepartures() { return repo->getPublicFlights(false); }
+    vector<PublicFlightDTO> getArrivals() { return repo->getPublicFlights(true); }
+    vector<PrivateFlightDTO> getPrivateFlights() { return repo->getAllPrivateFlights(); }
 
     ResourcesDTO getResources() {
         return repo->getResources();
@@ -39,7 +32,10 @@ public:
     }
 
     void deleteFlight(int id, const string& username) {
+        string flightNum = repo->getFlightNumberById(id);
+        
         repo->remove(id);
-        if (audit) audit->saveLog(username, "DELETE", "flights", id, "Удален рейс ID: " + to_string(id));
+
+        if (audit) audit->saveLog(username, "DELETE", "flights", id, "Удален рейс " + flightNum);
     }
 };

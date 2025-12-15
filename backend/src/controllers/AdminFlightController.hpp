@@ -145,5 +145,60 @@ public:
             
             return crow::response(200, result);
         });
+
+        CROW_ROUTE(app, "/api/admin/users").methods("POST"_method)
+        ([this](const crow::request& req) {
+            string token = req.get_header_value("Authorization");
+            if (token.find("admin:") != 0) return crow::response(403);
+
+            auto x = crow::json::load(req.body);
+            if (!x) return crow::response(400);
+
+            CreateUserDTO dto;
+            dto.username = x["username"].s();
+            dto.password = x["password"].s();
+            dto.lastName = x["last_name"].s();
+            dto.firstName = x["first_name"].s();
+            dto.middleName = x["middle_name"].s();
+            dto.role = x["role"].s();
+
+            authService->createUser(dto, getUsername(token));
+            return crow::response(201);
+        });
+
+        CROW_ROUTE(app, "/api/admin/users/<int>").methods("PUT"_method)
+        ([this](const crow::request& req, int id) {
+            string token = req.get_header_value("Authorization");
+            if (token.find("admin:") != 0) return crow::response(403);
+
+            auto x = crow::json::load(req.body);
+            if (!x) return crow::response(400);
+
+            CreateUserDTO dto;
+            dto.username = x["username"].s();
+            dto.password = x["password"].s(); 
+            dto.lastName = x["last_name"].s();
+            dto.firstName = x["first_name"].s();
+            dto.middleName = x["middle_name"].s();
+            dto.role = x["role"].s();
+
+            authService->updateUser(id, dto, getUsername(token));
+            return crow::response(200);
+        });
+
+        CROW_ROUTE(app, "/api/admin/users/<int>").methods("DELETE"_method)
+        ([this](const crow::request& req, int id) {
+            string token = req.get_header_value("Authorization");
+            if (token.find("admin:") != 0) return crow::response(403);
+            authService->deleteUser(id, getUsername(token));
+            return crow::response(200);
+        });
+
+        CROW_ROUTE(app, "/api/validate")
+        ([this](const crow::request& req) {
+             string token = req.get_header_value("Authorization");
+             if (token.empty()) return crow::response(401);
+             return crow::response(200);
+        });
     }
 };

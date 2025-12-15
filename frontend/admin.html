@@ -5,16 +5,17 @@
     <title>Панель управления</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
-        .container { max-width: 1300px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         
         #login-view { max-width: 400px; margin: 50px auto; text-align: center; }
         input, select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { padding: 10px 15px; background: #0d6efd; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button { padding: 8px 12px; background: #0d6efd; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
         button:hover { background: #0b5ed7; }
         .btn-danger { background: #dc3545; }
         .btn-danger:hover { background: #bb2d3b; }
         .btn-edit { background: #ffc107; color: #000; }
         .btn-edit:hover { background: #ffca2c; }
+        .btn-large { padding: 10px 20px; font-size: 16px; }
         
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -22,12 +23,14 @@
         .nav-btn.active { background: #0d6efd; color: white; }
         .hidden { display: none !important; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #f8f9fa; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
+        th { background: #f8f9fa; white-space: nowrap; }
+        
+        .crew-info { line-height: 1.4; color: #555; }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 30px; border-radius: 8px; width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; width: 450px; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
         .close { font-size: 24px; cursor: pointer; }
         
@@ -47,7 +50,7 @@
     <div id="login-error" style="color:red; display:none; margin-bottom:10px;">Ошибка входа</div>
     <input type="text" id="username" placeholder="Логин">
     <input type="password" id="password" placeholder="Пароль">
-    <button onclick="login()" style="width:100%">Войти</button>
+    <button onclick="login()" class="btn-large" style="width:100%">Войти</button>
     <a href="/" style="display:block; margin-top:20px; color:#666; text-align:center;">Вернуться на табло</a>
 </div>
 
@@ -65,15 +68,18 @@
 
     <div id="flights-tab">
         <div style="margin-bottom: 15px;">
-            <button id="add-flight-btn" class="hidden" onclick="openModal()">+ Добавить рейс</button>
+            <button id="add-flight-btn" class="hidden btn-large" onclick="openModal()">+ Добавить рейс</button>
         </div>
         <table>
             <thead>
                 <tr>
                     <th>Рейс</th>
                     <th>Маршрут</th>
-                    <th>Вылет</th>
-                    <th>Прибытие</th>
+                    <th>Время</th>
+                    <th>Гейт</th>
+                    <th>Борт</th>
+                    <th>Экипаж</th>
+                    <th>Пасс.</th>
                     <th>Статус</th>
                     <th>Действия</th>
                 </tr>
@@ -83,8 +89,11 @@
     </div>
 
     <div id="users-tab" class="hidden">
+        <div style="margin-bottom: 15px;">
+            <button class="btn-large" onclick="openUserModal()">+ Добавить сотрудника</button>
+        </div>
         <table>
-            <thead><tr><th>ID</th><th>Логин</th><th>ФИО</th><th>Роль</th></tr></thead>
+            <thead><tr><th>ID</th><th>Логин</th><th>ФИО</th><th>Роль</th><th>Действия</th></tr></thead>
             <tbody id="users-body"></tbody>
         </table>
     </div>
@@ -100,26 +109,15 @@
 <div id="flight-modal" class="modal hidden">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="modal-title">Создание рейса</h2>
-            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Рейс</h2>
+            <span class="close" onclick="closeModal('flight-modal')">&times;</span>
         </div>
         <input type="hidden" id="f-id">
-        
-        <label>Номер рейса</label>
-        <input type="text" id="f-number" placeholder="SU-100">
-
-        <label>Откуда</label>
-        <select id="f-origin"></select>
-
-        <label>Куда</label>
-        <select id="f-dest"></select>
-
-        <label>Время вылета</label>
-        <input type="datetime-local" id="f-dep">
-
-        <label>Время прибытия</label>
-        <input type="datetime-local" id="f-arr">
-
+        <label>Номер рейса</label><input type="text" id="f-number" placeholder="SU-100">
+        <label>Откуда</label><select id="f-origin"></select>
+        <label>Куда</label><select id="f-dest"></select>
+        <label>Время вылета</label><input type="datetime-local" id="f-dep">
+        <label>Время прибытия</label><input type="datetime-local" id="f-arr">
         <label>Статус</label>
         <select id="f-status">
             <option value="scheduled">По расписанию</option>
@@ -130,35 +128,54 @@
             <option value="delayed">Задержан</option>
             <option value="cancelled">Отменен</option>
         </select>
+        <label>Выход</label><input type="text" id="f-gate">
+        <label>Самолет</label><select id="f-aircraft"></select>
+        <label>Командир</label><select id="f-pilot"></select>
+        <label>Второй пилот</label><select id="f-copilot"></select>
+        <button onclick="saveFlight()" class="btn-large" style="width:100%; margin-top:10px;">Сохранить</button>
+    </div>
+</div>
 
-        <label>Выход (Gate)</label>
-        <input type="text" id="f-gate" placeholder="B12">
-
-        <label>Самолет</label>
-        <select id="f-aircraft"></select>
-
-        <label>Командир</label>
-        <select id="f-pilot"></select>
-
-        <label>Второй пилот</label>
-        <select id="f-copilot"></select>
-
-        <button onclick="saveFlight()" style="width:100%; margin-top:10px;">Сохранить</button>
+<div id="user-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="u-modal-title">Сотрудник</h2>
+            <span class="close" onclick="closeModal('user-modal')">&times;</span>
+        </div>
+        <input type="hidden" id="u-id">
+        <label>Логин</label><input type="text" id="u-login">
+        <label>Пароль</label><input type="password" id="u-password" placeholder="Пусто - без изменений">
+        <label>Фамилия</label><input type="text" id="u-last">
+        <label>Имя</label><input type="text" id="u-first">
+        <label>Отчество</label><input type="text" id="u-middle">
+        <label>Роль</label>
+        <select id="u-role">
+            <option value="operator">Оператор</option>
+            <option value="admin">Администратор</option>
+        </select>
+        <button onclick="saveUser()" class="btn-large" style="width:100%; margin-top:10px;">Сохранить</button>
     </div>
 </div>
 
 <script>
     const API_URL = '/api';
-    let resources = { airports: [], aircrafts: [], pilots: [] };
+    let resources = {};
     let currentFlights = [];
+    let currentUsers = [];
 
-    function checkAuth() {
+    async function checkAuth() {
         const token = localStorage.getItem('token');
-        if (token) showDashboard();
-        else {
-            document.getElementById('login-view').classList.remove('hidden');
-            document.getElementById('dashboard-view').classList.add('hidden');
-        }
+        if (!token) return showLogin();
+        try {
+            const res = await fetch(`${API_URL}/validate`, { headers: {'Authorization': token} });
+            if (res.ok) showDashboard();
+            else logout();
+        } catch { logout(); }
+    }
+
+    function showLogin() {
+        document.getElementById('login-view').classList.remove('hidden');
+        document.getElementById('dashboard-view').classList.add('hidden');
     }
 
     async function login() {
@@ -199,107 +216,89 @@
     async function loadResources() {
         const res = await fetch(`${API_URL}/admin/resources`, { headers: { 'Authorization': localStorage.getItem('token') } });
         resources = await res.json();
-        
         populateSelect('f-origin', resources.airports);
         populateSelect('f-dest', resources.airports);
         populateSelect('f-aircraft', resources.aircrafts, true);
         populateSelect('f-pilot', resources.pilots, true);
         populateSelect('f-copilot', resources.pilots, true);
     }
-
-    function populateSelect(id, items, hasEmpty = false) {
-        const sel = document.getElementById(id);
-        sel.innerHTML = hasEmpty ? '<option value="0">-- Не выбран --</option>' : '';
-        items.forEach(i => sel.innerHTML += `<option value="${i.id}">${i.name}</option>`);
+    function populateSelect(id, items, empty=false) {
+        const s = document.getElementById(id);
+        s.innerHTML = empty ? '<option value="0">-- Не выбран --</option>' : '';
+        items.forEach(i => s.innerHTML += `<option value="${i.id}">${i.name}</option>`);
+    }
+    function showTab(t) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        ['flights','users','audit'].forEach(x => document.getElementById(x+'-tab').classList.add('hidden'));
+        document.getElementById(t+'-tab').classList.remove('hidden');
+        if(t==='flights') loadPrivateFlights();
+        if(t==='users') loadUsers();
+        if(t==='audit') loadAudit();
     }
 
     async function loadPrivateFlights() {
         const res = await fetch(`${API_URL}/admin/flights`, { headers: { 'Authorization': localStorage.getItem('token') } });
-        if (res.status === 403) return logout();
-        
+        if(res.status===403) return logout();
         const data = await res.json();
         currentFlights = data.flights;
         const tbody = document.getElementById('flights-body');
         tbody.innerHTML = '';
         const role = localStorage.getItem('role');
-
         data.flights.forEach(f => {
-            let actions = `<button class="btn-edit" onclick="openModal(${f.id})">Ред.</button>`;
-            if (role === 'admin') {
-                actions += ` <button class="btn-danger" onclick="deleteFlight(${f.id})">Удал.</button>`;
-            }
-
+            let acts = `<button class="btn-edit" onclick="openModal(${f.id})">Ред.</button>`;
+            if(role==='admin') acts += ` <button class="btn-danger" onclick="deleteFlight(${f.id})">Удал.</button>`;
+            
+            const crew = `<div class="crew-info"><b>КВС:</b> ${f.pilot}<br><b>ВП:</b> ${f.copilot}</div>`;
+            const times = `${f.dep_time} <br> ${f.arr_time}`;
+            
             tbody.innerHTML += `
                 <tr>
                     <td><b>${f.flight_number}</b></td>
-                    <td>${f.origin} -> ${f.destination}</td>
-                    <td>${f.dep_time}</td>
-                    <td>${f.arr_time}</td>
+                    <td>${f.origin} &rarr; ${f.destination}</td>
+                    <td><small>${f.dep_time} (Выл)<br>${f.arr_time} (Приб)</small></td>
+                    <td>${f.gate}</td>
+                    <td>${f.aircraft}</td>
+                    <td>${crew}</td>
+                    <td style="text-align:center">${f.passengers}</td>
                     <td><span class="status-${f.status}">${translateStatus(f.status)}</span></td>
-                    <td>${actions}</td>
+                    <td>${acts}</td>
                 </tr>`;
         });
     }
-
-    async function loadUsers() {
-        const res = await fetch(`${API_URL}/admin/users`, { headers: { 'Authorization': localStorage.getItem('token') } });
-        const data = await res.json();
-        const tbody = document.getElementById('users-body');
-        tbody.innerHTML = '';
-        data.users.forEach(u => tbody.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.last_name} ${u.first_name}</td><td>${translateRole(u.role)}</td></tr>`);
-    }
-
-    async function loadAudit() {
-        const res = await fetch(`${API_URL}/admin/audit`, { headers: { 'Authorization': localStorage.getItem('token') } });
-        const data = await res.json();
-        const tbody = document.getElementById('audit-body');
-        tbody.innerHTML = '';
-        data.logs.forEach(l => {
-            let msg = l.details;
-            try { msg = JSON.parse(l.details).message || msg; } catch{}
-            tbody.innerHTML += `<tr><td>${l.time}</td><td>${l.user}</td><td>${l.action}</td><td>${msg}</td></tr>`;
-        });
-    }
-
-    function showTab(t) {
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-        ['flights', 'users', 'audit'].forEach(id => document.getElementById(id + '-tab').classList.add('hidden'));
-        document.getElementById(t + '-tab').classList.remove('hidden');
-        if (t === 'flights') loadPrivateFlights();
-        if (t === 'users') loadUsers();
-        if (t === 'audit') loadAudit();
-    }
-
     function openModal(id = null) {
         document.getElementById('flight-modal').classList.remove('hidden');
-        if (!id) {
-            document.getElementById('modal-title').innerText = 'Создание рейса';
-            document.getElementById('f-id').value = '';
+        document.getElementById('f-id').value = id || '';
+        document.getElementById('modal-title').innerText = id ? 'Редактирование' : 'Создание';
+        
+        if (id) {
+            const f = currentFlights.find(x => x.id === id);
+            
+            document.getElementById('f-number').value = f.flight_number;
+            document.getElementById('f-status').value = f.status;
+            document.getElementById('f-gate').value = f.gate === '---' ? '' : f.gate;
+            
+            document.getElementById('f-dep').value = f.dep_time_iso;
+            document.getElementById('f-arr').value = f.arr_time_iso;
+
+            document.getElementById('f-aircraft').value = f.aircraft_id;
+            document.getElementById('f-pilot').value = f.pilot_id;
+            document.getElementById('f-copilot').value = f.copilot_id;
+             
+        } else {
             document.getElementById('f-number').value = '';
             document.getElementById('f-gate').value = '';
+            document.getElementById('f-dep').value = '';
+            document.getElementById('f-arr').value = '';
             document.getElementById('f-status').value = 'scheduled';
             document.getElementById('f-aircraft').value = 0;
             document.getElementById('f-pilot').value = 0;
             document.getElementById('f-copilot').value = 0;
-        } else {
-            const f = currentFlights.find(x => x.id === id);
-            document.getElementById('modal-title').innerText = 'Редактирование рейса';
-            document.getElementById('f-id').value = f.id;
-            document.getElementById('f-number').value = f.flight_number;
-            
-            document.getElementById('f-status').value = f.status;
-            document.getElementById('f-gate').value = f.gate;
         }
     }
 
-    function closeModal() { document.getElementById('flight-modal').classList.add('hidden'); }
-
     async function saveFlight() {
         const id = document.getElementById('f-id').value;
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? `${API_URL}/admin/flights/${id}` : `${API_URL}/admin/flights`;
-
         const body = {
             flight_number: document.getElementById('f-number').value,
             origin: document.getElementById('f-origin').value,
@@ -312,32 +311,83 @@
             pilot_id: parseInt(document.getElementById('f-pilot').value),
             copilot_id: parseInt(document.getElementById('f-copilot').value)
         };
-
-        const res = await fetch(url, {
-            method: method, body: JSON.stringify(body),
-            headers: { 'Content-Type': 'application/json', 'Authorization': localStorage.getItem('token') }
+        await fetch(id ? `${API_URL}/admin/flights/${id}` : `${API_URL}/admin/flights`, {
+            method: id ? 'PUT' : 'POST', body: JSON.stringify(body),
+            headers: {'Content-Type':'application/json','Authorization':localStorage.getItem('token')}
         });
-
-        if (res.ok) {
-            closeModal();
-            loadPrivateFlights();
-        } else alert('Ошибка сохранения');
+        closeModal('flight-modal'); loadPrivateFlights();
     }
-
     async function deleteFlight(id) {
-        if (!confirm('Удалить рейс?')) return;
-        const res = await fetch(`${API_URL}/admin/flights/${id}`, {
-            method: 'DELETE', headers: { 'Authorization': localStorage.getItem('token') }
-        });
-        if (res.ok) loadPrivateFlights();
-        else alert('Ошибка удаления');
+        if(confirm('Удалить?')) {
+            await fetch(`${API_URL}/admin/flights/${id}`, { method:'DELETE', headers:{'Authorization':localStorage.getItem('token')} });
+            loadPrivateFlights();
+        }
     }
 
-    function translateStatus(s) {
-        const d = { 'scheduled': 'По расписанию', 'check_in': 'Регистрация', 'boarding': 'Посадка', 'departed': 'Вылетел', 'arrived': 'Прибыл', 'delayed': 'Задержан', 'cancelled': 'Отменен' };
-        return d[s] || s;
+    async function loadUsers() {
+        const res = await fetch(`${API_URL}/admin/users`, { headers: { 'Authorization': localStorage.getItem('token') } });
+        const data = await res.json();
+        const tbody = document.getElementById('users-body');
+        tbody.innerHTML = '';
+        data.users.forEach(u => {
+            tbody.innerHTML += `<tr><td>${u.id}</td><td><b>${u.username}</b></td><td>${u.last_name} ${u.first_name}</td><td>${u.role}</td><td><button class="btn-edit" onclick="openUserModal(${u.id})">Ред.</button> <button class="btn-danger" onclick="deleteUser(${u.id})">Удал.</button></td></tr>`;
+        });
     }
-    function translateRole(r) { return r === 'admin' ? 'Админ' : 'Оператор'; }
+    function openUserModal(id=null) {
+        document.getElementById('user-modal').classList.remove('hidden');
+        document.getElementById('u-id').value = id || '';
+        document.getElementById('u-modal-title').innerText = id ? 'Редактирование' : 'Новый сотрудник';
+        if(id) {
+            const u = currentUsers.find(x=>x.id===id);
+            document.getElementById('u-login').value = u.username;
+            document.getElementById('u-password').value = '';
+            document.getElementById('u-last').value = u.last_name;
+            document.getElementById('u-first').value = u.first_name;
+            document.getElementById('u-middle').value = u.middle_name;
+            document.getElementById('u-role').value = u.role;
+        } else {
+            document.getElementById('u-login').value = '';
+            document.getElementById('u-password').value = '';
+            document.getElementById('u-last').value = '';
+            document.getElementById('u-first').value = '';
+            document.getElementById('u-middle').value = '';
+        }
+    }
+    async function saveUser() {
+        const id = document.getElementById('u-id').value;
+        const body = {
+            username: document.getElementById('u-login').value,
+            password: document.getElementById('u-password').value,
+            last_name: document.getElementById('u-last').value,
+            first_name: document.getElementById('u-first').value,
+            middle_name: document.getElementById('u-middle').value,
+            role: document.getElementById('u-role').value
+        };
+        await fetch(id ? `${API_URL}/admin/users/${id}` : `${API_URL}/admin/users`, {
+            method: id ? 'PUT' : 'POST', body: JSON.stringify(body),
+            headers: {'Content-Type':'application/json','Authorization':localStorage.getItem('token')}
+        });
+        closeModal('user-modal'); loadUsers();
+    }
+    async function deleteUser(id) {
+        if(confirm('Удалить сотрудника?')) {
+            await fetch(`${API_URL}/admin/users/${id}`, { method:'DELETE', headers:{'Authorization':localStorage.getItem('token')} });
+            loadUsers();
+        }
+    }
+
+    // === COMMON ===
+    async function loadAudit() {
+        const res = await fetch(`${API_URL}/admin/audit`, { headers: { 'Authorization': localStorage.getItem('token') } });
+        const data = await res.json();
+        const t = document.getElementById('audit-body'); t.innerHTML='';
+        data.logs.forEach(l => {
+            let m=l.details; try{m=JSON.parse(l.details).message||m}catch{}
+            t.innerHTML+=`<tr><td>${l.time}</td><td>${l.user}</td><td>${l.action}</td><td>${m}</td></tr>`;
+        });
+    }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function translateStatus(s) { const d={'scheduled':'По расписанию','check_in':'Регистрация','boarding':'Посадка','departed':'Вылетел','arrived':'Прибыл','delayed':'Задержан','cancelled':'Отменен'}; return d[s]||s; }
 
     document.addEventListener('DOMContentLoaded', checkAuth);
 </script>
