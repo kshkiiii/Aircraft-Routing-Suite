@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     git \
     libboost-all-dev \
     libpqxx-dev \
+    libssl-dev \
     wget
 
 RUN wget https://github.com/CrowCpp/Crow/releases/download/v1.0+5/crow_all.h -O /usr/include/crow_all.h

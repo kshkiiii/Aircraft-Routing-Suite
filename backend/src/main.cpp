@@ -1,8 +1,14 @@
 #include "crow_all.h"
 #include "config/Database.hpp"
 #include "repositories/FlightRepository.hpp"
+#include "repositories/UserRepository.hpp"
+#include "repositories/AuditRepository.hpp" 
 #include "services/FlightService.hpp"
+#include "services/AuthService.hpp"
 #include "controllers/FlightController.hpp"
+#include "controllers/AuthController.hpp"
+#include "controllers/AdminFlightController.hpp"
+#include "utils/CryptoUtils.hpp"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -11,34 +17,45 @@ using namespace std;
 
 int main() {
     auto db = make_shared<Database>();
-    int max_retries = 10;
     
-    for (int i = 0; i < max_retries; ++i) {
+    for (int i = 0; i < 10; ++i) {
         try {
-            auto conn = db->get_connection();
-            if (conn->is_open()) {
+            if (db->get_connection()->is_open()) {
                 cout << "БД подключена!" << endl;
                 break;
             }
-        } catch (const exception& e) {
-            if (i == max_retries - 1) return 1;
+        } catch (...) {
             this_thread::sleep_for(chrono::seconds(2));
         }
     }
 
     auto flightRepo = make_shared<FlightRepository>(db);
+    auto userRepo = make_shared<UserRepository>(db);
+    auto auditRepo = make_shared<AuditRepository>(db); // +
+
     auto flightService = make_shared<FlightService>(flightRepo);
+    auto authService = make_shared<AuthService>(userRepo);
+
     auto flightController = make_shared<FlightController>(flightService);
+    auto authController = make_shared<AuthController>(authService);
+    auto adminController = make_shared<AdminFlightController>(flightService, authService, auditRepo); // +
 
     crow::SimpleApp app;
 
     flightController->registerRoutes(app);
+    authController->registerRoutes(app);
+    adminController->registerRoutes(app);
 
     CROW_ROUTE(app, "/")([](const crow::request&, crow::response& res){
         res.set_static_file_info("static/index.html");
         res.end();
     });
+    
+    CROW_ROUTE(app, "/admin")([](const crow::request&, crow::response& res){
+        res.set_static_file_info("static/admin.html");
+        res.end();
+    });
 
-    cout << "Сервер запущен на порту 8080" << endl;
+    cout << "Сервер запущен (SSL enabled, Port 8080)" << endl;
     app.port(8080).multithreaded().run();
 }

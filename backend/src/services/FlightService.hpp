@@ -17,4 +17,8 @@ public:
     vector<PublicFlightDTO> getArrivals() {
         return repo->getPublicFlights(true);
     }
+
+    vector<PrivateFlightDTO> getPrivateFlights() {
+        return repo->getAllPrivateFlights();
+    }
 };
