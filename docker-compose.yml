@@ -20,6 +20,7 @@ services:
     build:
       context: ./backend      
     container_name: flight_backend
+    restart: on-failure
     depends_on:
       - db
     ports:

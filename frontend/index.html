@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Онлайн табло</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab { padding: 15px 30px; cursor: pointer; font-weight: bold; color: #666; transition: 0.3s; }
+        .tab:hover { background: #f8f9fa; }
+        .tab.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; margin-bottom: -3px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; color: #555; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+        
+        .status-scheduled { color: #6c757d; }
+        .status-check_in { color: #fd7e14; font-weight: bold; }
+        .status-boarding { color: #d63384; font-weight: bold; }
+        .status-departed { color: #0d6efd; }
+        .status-arrived { color: #198754; }
+        .status-delayed { color: #dc3545; font-weight: bold; }
+        .status-cancelled { color: #212529; text-decoration: line-through; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>✈️ Онлайн табло рейсов</h1>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="loadFlights('departures', 'Время вылета')">Вылет</div>
+        <div class="tab" onclick="loadFlights('arrivals', 'Время прибытия')">Прибытие</div>
+    </div>
+
+    <table id="flightTable">
+        <thead>
+            <tr>
+                <th>Рейс</th>
+                <th>Откуда</th>
+                <th>Куда</th>
+                <th id="timeHeader">Время вылета</th>
+                <th>Статус</th>
+                <th>Выход</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+</div>
+
+<script>
+    async function loadFlights(type, timeHeaderTitle) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+
+        document.getElementById('timeHeader').innerText = timeHeaderTitle;
+
+        const response = await fetch(`/api/public/${type}`);
+        const data = await response.json();
+        const tbody = document.querySelector('#flightTable tbody');
+        
+        tbody.innerHTML = '';
+
+        if (data.flights.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Рейсов не найдено</td></tr>';
+            return;
+        }
+
+        data.flights.forEach(f => {
+            const row = `
+                <tr>
+                    <td><b>${f.flight_number}</b></td>
+                    <td>${f.origin}</td>
+                    <td>${f.destination}</td>
+                    <td>${f.time}</td>
+                    <td>
+                        <span class="status-${f.status}">
+                            ${translateStatus(f.status)}
+                        </span>
+                    </td>
+                    <td>${f.gate}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function translateStatus(status) {
+        const dict = {
+            'scheduled': 'По расписанию',
+            'check_in': 'Регистрация',
+            'boarding': 'Посадка',
+            'departed': 'Вылетел',
+            'arrived': 'Прибыл',
+            'delayed': 'Задержан',
+            'cancelled': 'Отменен'
+        };
+        return dict[status] || status;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => loadFlights('departures', 'Время вылета'));
+</script>
+
+</body>
+</html>
