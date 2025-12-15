@@ -47,6 +47,30 @@ struct AuditDTO {
     string details;     
 };
 
+struct FlightRequestDTO {
+    string flightNumber;
+    string originCode;
+    string destinationCode;
+    string depTime;        
+    string arrTime;
+    string status;
+    string gate;
+    int aircraftId;         
+    int pilotId;
+    int copilotId;
+};
+
+struct ResourceItem {
+    string id;              
+    string name;            
+};
+
+struct ResourcesDTO {
+    vector<ResourceItem> airports;
+    vector<ResourceItem> aircrafts;
+    vector<ResourceItem> pilots;
+};
+
 inline crow::json::wvalue flightToJson(const PublicFlightDTO& f) {
     crow::json::wvalue x;
     x["flight_number"] = f.flightNumber;
@@ -94,5 +118,23 @@ inline crow::json::wvalue auditToJson(const AuditDTO& a) {
     x["table"] = a.table;
     x["time"] = a.time;
     x["details"] = a.details;
+    return x;
+}
+
+inline crow::json::wvalue resourcesToJson(const ResourcesDTO& r) {
+    crow::json::wvalue x;
+    
+    vector<crow::json::wvalue> air;
+    for(const auto& i : r.airports) { crow::json::wvalue v; v["id"]=i.id; v["name"]=i.name; air.push_back(v); }
+    x["airports"] = std::move(air);
+
+    vector<crow::json::wvalue> ac;
+    for(const auto& i : r.aircrafts) { crow::json::wvalue v; v["id"]=i.id; v["name"]=i.name; ac.push_back(v); }
+    x["aircrafts"] = std::move(ac);
+
+    vector<crow::json::wvalue> pil;
+    for(const auto& i : r.pilots) { crow::json::wvalue v; v["id"]=i.id; v["name"]=i.name; pil.push_back(v); }
+    x["pilots"] = std::move(pil);
+
     return x;
 }

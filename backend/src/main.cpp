@@ -31,14 +31,14 @@ int main() {
 
     auto flightRepo = make_shared<FlightRepository>(db);
     auto userRepo = make_shared<UserRepository>(db);
-    auto auditRepo = make_shared<AuditRepository>(db); // +
+    auto auditRepo = make_shared<AuditRepository>(db);
 
-    auto flightService = make_shared<FlightService>(flightRepo);
+    auto flightService = make_shared<FlightService>(flightRepo, auditRepo);
     auto authService = make_shared<AuthService>(userRepo);
 
     auto flightController = make_shared<FlightController>(flightService);
     auto authController = make_shared<AuthController>(authService);
-    auto adminController = make_shared<AdminFlightController>(flightService, authService, auditRepo); // +
+    auto adminController = make_shared<AdminFlightController>(flightService, authService, auditRepo); 
 
     crow::SimpleApp app;
 

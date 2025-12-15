@@ -3,6 +3,7 @@
 #include "../models/DTOs.hpp"
 #include <vector>
 #include <memory>
+#include <string>
 
 using namespace std;
 
@@ -16,25 +17,36 @@ public:
     vector<AuditDTO> getAllLogs() {
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
-        
         string sql = "SELECT a.id, u.username, a.action_type, a.table_name, "
                      "to_char(a.created_at, 'DD.MM.YYYY HH24:MI'), a.changes::text "
-                     "FROM audit_logs a "
-                     "LEFT JOIN users u ON a.user_id = u.id "
+                     "FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id "
                      "ORDER BY a.created_at DESC LIMIT 100";
-
         pqxx::result res = txn.exec(sql);
         vector<AuditDTO> logs;
         for (auto row : res) {
             logs.push_back({
-                row[0].as<int>(),
-                row[1].is_null() ? "System" : row[1].c_str(),
-                row[2].c_str(),
-                row[3].c_str(),
-                row[4].c_str(),
-                row[5].c_str()
+                row[0].as<int>(), row[1].is_null() ? "System" : row[1].c_str(),
+                row[2].c_str(), row[3].c_str(), row[4].c_str(), row[5].c_str()
             });
         }
         return logs;
+    }
+
+    void saveLog(const string& username, const string& action, const string& table, int recordId, const string& message) {
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+
+        string userSql = "SELECT id FROM users WHERE username = " + txn.quote(username);
+        pqxx::result userRes = txn.exec(userSql);
+        string userId = userRes.empty() ? "NULL" : userRes[0][0].c_str();
+
+        string jsonDetails = "{\"message\": \"" + message + "\"}";
+
+        string sql = "INSERT INTO audit_logs (user_id, action_type, table_name, record_id, changes) VALUES (" +
+                     userId + ", " + txn.quote(action) + ", " + txn.quote(table) + ", " + 
+                     to_string(recordId) + ", '" + jsonDetails + "')";
+        
+        txn.exec(sql);
+        txn.commit();
     }
 };

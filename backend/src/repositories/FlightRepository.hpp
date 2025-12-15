@@ -73,4 +73,73 @@ public:
         }
         return flights;
     }
+
+    ResourcesDTO getResources() {
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+        ResourcesDTO res;
+
+        for (auto row : txn.exec("SELECT code, city || ' (' || code || ')' FROM airports"))
+            res.airports.push_back({row[0].c_str(), row[1].c_str()});
+
+        for (auto row : txn.exec("SELECT id, model || ' - ' || registration_number FROM aircrafts"))
+            res.aircrafts.push_back({row[0].c_str(), row[1].c_str()});
+            
+        for (auto row : txn.exec("SELECT id, last_name || ' ' || first_name || ' (' || rank || ')' FROM pilots"))
+            res.pilots.push_back({row[0].c_str(), row[1].c_str()});
+
+        return res;
+    }
+
+    int create(const FlightRequestDTO& dto) {
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+
+        string aircraft = (dto.aircraftId <= 0) ? "NULL" : to_string(dto.aircraftId);
+        string pilot = (dto.pilotId <= 0) ? "NULL" : to_string(dto.pilotId);
+        string copilot = (dto.copilotId <= 0) ? "NULL" : to_string(dto.copilotId);
+
+        string sql = "INSERT INTO flights (flight_number, departure_airport_code, arrival_airport_code, "
+                     "scheduled_departure, scheduled_arrival, status, gate, aircraft_id, pilot_id, copilot_id) "
+                     "VALUES (" +
+                     txn.quote(dto.flightNumber) + ", " + txn.quote(dto.originCode) + ", " + txn.quote(dto.destinationCode) + ", " +
+                     txn.quote(dto.depTime) + ", " + txn.quote(dto.arrTime) + ", " + txn.quote(dto.status) + ", " + txn.quote(dto.gate) + ", " +
+                     aircraft + ", " + pilot + ", " + copilot + ") RETURNING id";
+
+        pqxx::result res = txn.exec(sql);
+        txn.commit();
+        return res[0][0].as<int>();
+    }
+
+    void update(int id, const FlightRequestDTO& dto) {
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+
+        string aircraft = (dto.aircraftId <= 0) ? "NULL" : to_string(dto.aircraftId);
+        string pilot = (dto.pilotId <= 0) ? "NULL" : to_string(dto.pilotId);
+        string copilot = (dto.copilotId <= 0) ? "NULL" : to_string(dto.copilotId);
+
+        string sql = "UPDATE flights SET "
+                     "flight_number = " + txn.quote(dto.flightNumber) + ", "
+                     "departure_airport_code = " + txn.quote(dto.originCode) + ", "
+                     "arrival_airport_code = " + txn.quote(dto.destinationCode) + ", "
+                     "scheduled_departure = " + txn.quote(dto.depTime) + ", "
+                     "scheduled_arrival = " + txn.quote(dto.arrTime) + ", "
+                     "status = " + txn.quote(dto.status) + ", "
+                     "gate = " + txn.quote(dto.gate) + ", "
+                     "aircraft_id = " + aircraft + ", "
+                     "pilot_id = " + pilot + ", "
+                     "copilot_id = " + copilot + " "
+                     "WHERE id = " + to_string(id);
+
+        txn.exec(sql);
+        txn.commit();
+    }
+
+    void remove(int id) {
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+        txn.exec("DELETE FROM flights WHERE id = " + to_string(id));
+        txn.commit();
+    }
 };

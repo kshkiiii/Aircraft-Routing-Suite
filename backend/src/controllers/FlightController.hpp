@@ -13,7 +13,6 @@ public:
 
     void registerRoutes(crow::SimpleApp& app) {
         
-        // GET /api/public/departures
         CROW_ROUTE(app, "/api/public/departures")
         ([this]() {
             auto flights = service->getDepartures();
@@ -26,7 +25,6 @@ public:
             return finalJson;
         });
 
-        // GET /api/public/arrivals
         CROW_ROUTE(app, "/api/public/arrivals")
         ([this]() {
             auto flights = service->getArrivals();
