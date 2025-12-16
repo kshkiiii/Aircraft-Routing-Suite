@@ -3,12 +3,23 @@
 #include "../models/DTOs.hpp"
 #include <vector>
 #include <memory>
+#include <optional>
 
 using namespace std;
 
 class FlightRepository {
 private:
     shared_ptr<Database> db;
+
+    optional<int> nullIfZero(int value) {
+        if (value <= 0) return nullopt;
+        return value;
+    }
+
+    optional<string> nullIfEmpty(const string& value) {
+        if (value.empty()) return nullopt;
+        return value;
+    }
 
 public:
     FlightRepository(shared_ptr<Database> database) : db(database) {}
@@ -29,7 +40,6 @@ public:
     vector<PrivateFlightDTO> getAllPrivateFlights() {
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
-        
         string sql = "SELECT f.id, f.flight_number, dep.city, arr.city, "
                      "to_char(f.scheduled_departure, 'DD.MM HH24:MI'), "
                      "to_char(f.scheduled_arrival, 'DD.MM HH24:MI'), "
@@ -38,9 +48,7 @@ public:
                      "COALESCE(p1.last_name || ' ' || p1.first_name, 'Не назначен'), "
                      "COALESCE(p2.last_name || ' ' || p2.first_name, 'Не назначен'), "
                      "f.passengers_count, "
-                     "COALESCE(f.aircraft_id, 0), "           
-                     "COALESCE(f.pilot_id, 0), "             
-                     "COALESCE(f.copilot_id, 0), "             
+                     "COALESCE(f.aircraft_id, 0), COALESCE(f.pilot_id, 0), COALESCE(f.copilot_id, 0), "
                      "to_char(f.scheduled_departure, 'YYYY-MM-DD\"T\"HH24:MI'), " 
                      "to_char(f.scheduled_arrival, 'YYYY-MM-DD\"T\"HH24:MI') "   
                      "FROM flights f "
@@ -67,13 +75,11 @@ public:
             dto.pilotName = row[9].c_str();
             dto.copilotName = row[10].c_str();
             dto.passengersCount = row[11].as<int>();
-            
             dto.aircraftId = row[12].as<int>();
             dto.pilotId = row[13].as<int>();
             dto.copilotId = row[14].as<int>();
             dto.depTimeIso = row[15].c_str();
             dto.arrTimeIso = row[16].c_str();
-
             flights.push_back(dto);
         }
         return flights;
@@ -92,7 +98,7 @@ public:
     string getFlightNumberById(int id) {
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
-        pqxx::result res = txn.exec("SELECT flight_number FROM flights WHERE id = " + to_string(id));
+        pqxx::result res = txn.exec_params("SELECT flight_number FROM flights WHERE id = $1", id);
         if (res.empty()) return "UNKNOWN";
         return res[0][0].c_str();
     }
@@ -101,21 +107,23 @@ public:
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
 
-        string aircraft = (dto.aircraftId <= 0) ? "NULL" : to_string(dto.aircraftId);
-        string pilot = (dto.pilotId <= 0) ? "NULL" : to_string(dto.pilotId);
-        string copilot = (dto.copilotId <= 0) ? "NULL" : to_string(dto.copilotId);
-        
-        string dep = dto.depTime.empty() ? "NULL" : txn.quote(dto.depTime);
-        string arr = dto.arrTime.empty() ? "NULL" : txn.quote(dto.arrTime);
-
         string sql = "INSERT INTO flights (flight_number, departure_airport_code, arrival_airport_code, "
                      "scheduled_departure, scheduled_arrival, status, gate, aircraft_id, pilot_id, copilot_id) "
-                     "VALUES (" +
-                     txn.quote(dto.flightNumber) + ", " + txn.quote(dto.originCode) + ", " + txn.quote(dto.destinationCode) + ", " +
-                     dep + ", " + arr + ", " + txn.quote(dto.status) + ", " + txn.quote(dto.gate) + ", " +
-                     aircraft + ", " + pilot + ", " + copilot + ") RETURNING id";
+                     "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id";
 
-        pqxx::result res = txn.exec(sql);
+        pqxx::result res = txn.exec_params(sql,
+            dto.flightNumber,
+            dto.originCode,
+            dto.destinationCode,
+            nullIfEmpty(dto.depTime),
+            nullIfEmpty(dto.arrTime),
+            dto.status,
+            dto.gate,
+            nullIfZero(dto.aircraftId),
+            nullIfZero(dto.pilotId),
+            nullIfZero(dto.copilotId)
+        );
+
         txn.commit();
         return res[0][0].as<int>();
     }
@@ -124,34 +132,40 @@ public:
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
 
-        string aircraft = (dto.aircraftId <= 0) ? "NULL" : to_string(dto.aircraftId);
-        string pilot = (dto.pilotId <= 0) ? "NULL" : to_string(dto.pilotId);
-        string copilot = (dto.copilotId <= 0) ? "NULL" : to_string(dto.copilotId);
-
-        string dep = dto.depTime.empty() ? "NULL" : txn.quote(dto.depTime);
-        string arr = dto.arrTime.empty() ? "NULL" : txn.quote(dto.arrTime);
-
         string sql = "UPDATE flights SET "
-                     "flight_number = " + txn.quote(dto.flightNumber) + ", "
-                     "departure_airport_code = " + txn.quote(dto.originCode) + ", "
-                     "arrival_airport_code = " + txn.quote(dto.destinationCode) + ", "
-                     "scheduled_departure = " + dep + ", "
-                     "scheduled_arrival = " + arr + ", "
-                     "status = " + txn.quote(dto.status) + ", "
-                     "gate = " + txn.quote(dto.gate) + ", "
-                     "aircraft_id = " + aircraft + ", "
-                     "pilot_id = " + pilot + ", "
-                     "copilot_id = " + copilot + " "
-                     "WHERE id = " + to_string(id);
+                     "flight_number = $1, "
+                     "departure_airport_code = $2, "
+                     "arrival_airport_code = $3, "
+                     "scheduled_departure = $4, "
+                     "scheduled_arrival = $5, "
+                     "status = $6, "
+                     "gate = $7, "
+                     "aircraft_id = $8, "
+                     "pilot_id = $9, "
+                     "copilot_id = $10 "
+                     "WHERE id = $11";
 
-        txn.exec(sql);
+        txn.exec_params(sql,
+            dto.flightNumber,
+            dto.originCode,
+            dto.destinationCode,
+            nullIfEmpty(dto.depTime),
+            nullIfEmpty(dto.arrTime),
+            dto.status,
+            dto.gate,
+            nullIfZero(dto.aircraftId),
+            nullIfZero(dto.pilotId),
+            nullIfZero(dto.copilotId),
+            id
+        );
+
         txn.commit();
     }
 
     void remove(int id) {
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
-        txn.exec("DELETE FROM flights WHERE id = " + to_string(id));
+        txn.exec_params("DELETE FROM flights WHERE id = $1", id);
         txn.commit();
     }
 };

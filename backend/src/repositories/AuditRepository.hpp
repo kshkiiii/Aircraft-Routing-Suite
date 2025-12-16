@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <optional> 
 
 using namespace std;
 
@@ -25,8 +26,12 @@ public:
         vector<AuditDTO> logs;
         for (auto row : res) {
             logs.push_back({
-                row[0].as<int>(), row[1].is_null() ? "System" : row[1].c_str(),
-                row[2].c_str(), row[3].c_str(), row[4].c_str(), row[5].c_str()
+                row[0].as<int>(), 
+                row[1].is_null() ? "System" : row[1].c_str(),
+                row[2].c_str(), 
+                row[3].c_str(), 
+                row[4].c_str(), 
+                row[5].c_str()
             });
         }
         return logs;
@@ -36,17 +41,20 @@ public:
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
 
-        string userSql = "SELECT id FROM users WHERE username = " + txn.quote(username);
-        pqxx::result userRes = txn.exec(userSql);
-        string userId = userRes.empty() ? "NULL" : userRes[0][0].c_str();
+        pqxx::result userRes = txn.exec_params("SELECT id FROM users WHERE username = $1", username);
+        
+        std::optional<int> userId;
+        if (!userRes.empty()) {
+            userId = userRes[0][0].as<int>();
+        }
 
         string jsonDetails = "{\"message\": \"" + message + "\"}";
 
-        string sql = "INSERT INTO audit_logs (user_id, action_type, table_name, record_id, changes) VALUES (" +
-                     userId + ", " + txn.quote(action) + ", " + txn.quote(table) + ", " + 
-                     to_string(recordId) + ", '" + jsonDetails + "')";
+        string sql = "INSERT INTO audit_logs (user_id, action_type, table_name, record_id, changes) "
+                     "VALUES ($1, $2, $3, $4, $5)";
         
-        txn.exec(sql);
+        txn.exec_params(sql, userId, action, table, recordId, jsonDetails);
+        
         txn.commit();
     }
 };
