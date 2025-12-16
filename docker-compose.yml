@@ -9,7 +9,9 @@ services:
       POSTGRES_PASSWORD: flight_password
       POSTGRES_DB: flight_schedule
     volumes:
-      - ./db/init_schema.sql:/docker-entrypoint-initdb.d/init_schema.sql
+      - ./db/init_schema.sql:/docker-entrypoint-initdb.d/1_init_schema.sql
+      # Тестовые данные
+      - ./db/test_data.sql:/docker-entrypoint-initdb.d/2_test_data.sql
       - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"

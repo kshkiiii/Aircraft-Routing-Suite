@@ -24,22 +24,66 @@ private:
 public:
     FlightRepository(shared_ptr<Database> database) : db(database) {}
 
-    vector<PublicFlightDTO> getPublicFlights(bool isArrival) {
+    bool isAircraftBusy(int aircraftId, const string& start, const string& end, int excludeFlightId = -1) {
+        if (aircraftId <= 0) return false;
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
+        
+        string sql = "SELECT COUNT(*) FROM flights "
+                     "WHERE aircraft_id = $1 "
+                     "AND scheduled_departure < $3 AND scheduled_arrival > $2 "
+                     "AND id != $4 AND status != 'cancelled'";
+        
+        pqxx::result res = txn.exec_params(sql, aircraftId, start, end, excludeFlightId);
+        return res[0][0].as<int>() > 0;
+    }
+
+    bool isPilotBusy(int pilotId, const string& start, const string& end, int excludeFlightId = -1) {
+        if (pilotId <= 0) return false;
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+
+        string sql = "SELECT COUNT(*) FROM flights "
+                     "WHERE (pilot_id = $1 OR copilot_id = $1) "
+                     "AND scheduled_departure < $3 AND scheduled_arrival > $2 "
+                     "AND id != $4 AND status != 'cancelled'";
+
+        pqxx::result res = txn.exec_params(sql, pilotId, start, end, excludeFlightId);
+        return res[0][0].as<int>() > 0;
+    }
+
+    vector<PublicFlightDTO> getPublicFlights(bool isArrival, const string& dateStr) {
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+        
         string timeField = isArrival ? "f.scheduled_arrival" : "f.scheduled_departure";
+        
         string sql = "SELECT f.flight_number, dep.city, arr.city, to_char(" + timeField + ", 'HH24:MI'), f.status, COALESCE(f.gate, '---') "
-                     "FROM flights f JOIN airports dep ON f.departure_airport_code = dep.code "
-                     "JOIN airports arr ON f.arrival_airport_code = arr.code ORDER BY " + timeField + " ASC";
-        pqxx::result res = txn.exec(sql);
+                     "FROM flights f "
+                     "JOIN airports dep ON f.departure_airport_code = dep.code "
+                     "JOIN airports arr ON f.arrival_airport_code = arr.code "
+                     "WHERE date(" + timeField + ") = $1 "
+                     "ORDER BY " + timeField + " ASC";
+        
+        pqxx::result res = txn.exec_params(sql, dateStr);
         vector<PublicFlightDTO> flights;
-        for (auto row : res) flights.push_back({row[0].c_str(), row[1].c_str(), row[2].c_str(), row[3].c_str(), row[4].c_str(), row[5].c_str()});
+        for (auto row : res) {
+            flights.push_back({
+                row[0].c_str(), 
+                row[1].c_str(), 
+                row[2].c_str(), 
+                row[3].c_str(), 
+                row[4].c_str(), 
+                row[5].c_str()
+            });
+        }
         return flights;
     }
 
-    vector<PrivateFlightDTO> getAllPrivateFlights() {
+    vector<PrivateFlightDTO> getAllPrivateFlights(int limit, int offset) {
         auto conn = db->get_connection();
         pqxx::work txn(*conn);
+        
         string sql = "SELECT f.id, f.flight_number, dep.city, arr.city, "
                      "to_char(f.scheduled_departure, 'DD.MM HH24:MI'), "
                      "to_char(f.scheduled_arrival, 'DD.MM HH24:MI'), "
@@ -57,9 +101,10 @@ public:
                      "LEFT JOIN aircrafts a ON f.aircraft_id = a.id "
                      "LEFT JOIN pilots p1 ON f.pilot_id = p1.id "
                      "LEFT JOIN pilots p2 ON f.copilot_id = p2.id "
-                     "ORDER BY f.scheduled_departure DESC";
+                     "ORDER BY f.scheduled_departure DESC "
+                     "LIMIT $1 OFFSET $2";
 
-        pqxx::result res = txn.exec(sql);
+        pqxx::result res = txn.exec_params(sql, limit, offset);
         vector<PrivateFlightDTO> flights;
         for (auto row : res) {
             PrivateFlightDTO dto;
@@ -83,6 +128,13 @@ public:
             flights.push_back(dto);
         }
         return flights;
+    }
+
+    int countAllFlights() {
+        auto conn = db->get_connection();
+        pqxx::work txn(*conn);
+        pqxx::result res = txn.exec("SELECT COUNT(*) FROM flights");
+        return res[0][0].as<int>();
     }
 
     ResourcesDTO getResources() {

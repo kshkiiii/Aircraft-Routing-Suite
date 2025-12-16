@@ -53,6 +53,14 @@ struct AuditDTO {
     string details;     
 };
 
+template <typename T>
+struct PaginatedResponse {
+    vector<T> data;
+    int total;
+    int page;
+    int pageSize;
+};
+
 struct FlightRequestDTO {
     string flightNumber;
     string originCode;
@@ -159,5 +167,20 @@ inline crow::json::wvalue resourcesToJson(const ResourcesDTO& r) {
     for(const auto& i : r.pilots) { crow::json::wvalue v; v["id"]=i.id; v["name"]=i.name; pil.push_back(v); }
     x["pilots"] = std::move(pil);
 
+    return x;
+}
+
+inline crow::json::wvalue paginatedFlightsToJson(const PaginatedResponse<PrivateFlightDTO>& p) {
+    crow::json::wvalue x;
+    x["total"] = p.total;
+    x["page"] = p.page;
+    x["limit"] = p.pageSize;
+    
+    vector<crow::json::wvalue> list;
+    for (const auto& item : p.data) {
+        list.push_back(privateFlightToJson(item));
+    }
+    x["data"] = std::move(list);
+    
     return x;
 }

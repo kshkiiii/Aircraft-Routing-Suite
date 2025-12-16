@@ -68,36 +68,5 @@ CREATE TABLE audit_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ТЕСТОВЫЕ ДАННЫЕ 
-
-INSERT INTO airports (code, city, name, timezone) VALUES
-('SVO', 'Москва', 'Шереметьево', 'Europe/Moscow'),
-('LED', 'Санкт-Петербург', 'Пулково', 'Europe/Moscow'),
-('DXB', 'Дубай', 'Международный аэропорт Дубай', 'Asia/Dubai'),
-('IST', 'Стамбул', 'Аэропорт Стамбул', 'Europe/Istanbul');
-
-INSERT INTO aircrafts (model, registration_number, total_seats) VALUES
-('Boeing 737-800', 'RA-73001', 189),
-('Airbus A320', 'RA-32005', 150);
-
-INSERT INTO pilots (last_name, first_name, middle_name, license_number, rank) VALUES
-('Иванов', 'Иван', 'Иванович', 'L-100', 'Captain'),
-('Петров', 'Петр', 'Петрович', 'L-101', 'First Officer'),
-('Сидоров', 'Алексей', 'Николаевич', 'L-102', 'First Officer');
-
-INSERT INTO flights (flight_number, departure_airport_code, arrival_airport_code, scheduled_departure, scheduled_arrival, status, gate, aircraft_id, pilot_id, copilot_id) 
-VALUES 
-('SU-100', 'SVO', 'LED', NOW() - INTERVAL '30 minutes', NOW() + INTERVAL '30 minutes', 'departed', 'B12', 1, 1, 2),
-('SU-520', 'SVO', 'DXB', NOW() + INTERVAL '2 hours', NOW() + INTERVAL '7 hours', 'check_in', 'D05', 2, 1, 3);
-
-INSERT INTO flights (flight_number, departure_airport_code, arrival_airport_code, scheduled_departure, scheduled_arrival, status, gate) 
-VALUES 
-('SU-101', 'LED', 'SVO', NOW() - INTERVAL '1 hour', NOW() + INTERVAL '10 minutes', 'arrived', 'B12'),
-('SU-521', 'DXB', 'SVO', NOW(), NOW() + INTERVAL '5 hours', 'delayed', NULL);
-
-INSERT INTO users (username, password_hash, last_name, first_name, role) VALUES
-('admin', '0d1e661db928505e45f649bc2b29b8d6814e2eee934aee167e30a8f5b3a80908', 'Админов', 'Сергей', 'admin'),
-('operator', '4996c1c8fb63454c38b3b7236578df275b47649a860db99a5624dbcdbb1e4c1e', 'Операторова', 'Анна', 'operator');
-
-INSERT INTO audit_logs (user_id, action_type, table_name, record_id, changes)
-VALUES (1, 'CREATE', 'flights', 1, '{"message": "Создан рейс SU-100 (SVO -> LED)"}');
+INSERT INTO users (username, password_hash, last_name, first_name, middle_name, role) VALUES
+('admin', '0d1e661db928505e45f649bc2b29b8d6814e2eee934aee167e30a8f5b3a80908', 'Админов', 'Админ', 'Админович', 'admin');

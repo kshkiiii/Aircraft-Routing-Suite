@@ -1,16 +1,14 @@
 const tableBody = document.querySelector('#board-table tbody');
 const timeHeader = document.getElementById('time-header');
 const tabs = document.querySelectorAll('.tab');
+const dateSelector = document.getElementById('date-selector');
+
 let currentType = 'departures';
+let selectedDate = new Date().toISOString().split('T')[0];
 
 const STATUS_MAP = {
-    'scheduled': 'По расписанию',
-    'check_in': 'Регистрация',
-    'boarding': 'Посадка',
-    'departed': 'Вылетел',
-    'arrived': 'Прибыл',
-    'delayed': 'Задержан',
-    'cancelled': 'Отменен'
+    'scheduled': 'По расписанию', 'check_in': 'Регистрация', 'boarding': 'Посадка',
+    'departed': 'Вылетел', 'arrived': 'Прибыл', 'delayed': 'Задержан', 'cancelled': 'Отменен'
 };
 
 const STATUS_ICONS = {
@@ -23,18 +21,53 @@ const STATUS_ICONS = {
     'cancelled': '<i class="fa-solid fa-ban"></i>'
 };
 
+function initDateButtons() {
+    dateSelector.innerHTML = '';
+    const today = new Date();
+    
+    for (let i = -1; i <= 2; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        
+        const year = d.getFullYear();
+        const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        const apiDate = `${year}-${monthStr}-${dayStr}`;
+        const displayDate = `${dayStr}.${monthStr}`;
+
+        let label = '';
+        if (i === -1) label = 'Вчера';
+        else if (i === 0) label = 'Сегодня';
+        else if (i === 1) label = 'Завтра';
+        else label = 'Послезавтра';
+
+        const btn = document.createElement('button');
+        btn.className = `date-btn ${i === 0 ? 'active' : ''}`;
+        btn.innerHTML = `<span class="date-label">${label}</span>${displayDate}`;
+        
+        btn.onclick = () => {
+            document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedDate = apiDate;
+            loadFlights();
+        };
+
+        dateSelector.appendChild(btn);
+    }
+}
+
 async function loadFlights() {
     try {
-        const res = await fetch(`/api/public/${currentType}`);
+        const res = await fetch(`/api/public/${currentType}?date=${selectedDate}`);
         const data = await res.json();
         
         tableBody.innerHTML = '';
-        if (data.flights.length === 0) {
+        if (!data.flights || data.flights.length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="5" class="empty-state">
                         <i class="fa-solid fa-plane-slash"></i>
-                        На данный момент рейсов нет
+                        На выбранную дату рейсов не найдено
                     </td>
                 </tr>`;
             return;
@@ -84,6 +117,7 @@ tabs.forEach(tab => {
     });
 });
 
+initDateButtons();
 loadFlights();
 
 setInterval(loadFlights, 30000);

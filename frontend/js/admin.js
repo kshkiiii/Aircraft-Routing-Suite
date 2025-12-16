@@ -2,6 +2,9 @@ let currentTab = 'flights';
 let resources = {};
 let currentData = [];
 
+let currentPage = 1;
+const pageSize = 20;
+
 const STATUS_MAP = {
     'scheduled': 'По расписанию', 'check_in': 'Регистрация', 'boarding': 'Посадка',
     'departed': 'Вылетел', 'arrived': 'Прибыл', 'delayed': 'Задержан', 'cancelled': 'Отменен'
@@ -44,15 +47,54 @@ async function api(url, method = 'GET', body = null) {
         const text = await res.text();
         if (!text) return {}; 
         try { return JSON.parse(text); } catch (e) { return {}; }
+    } else {
+        const errorText = await res.text();
+        throw new Error(errorText || `Ошибка сервера: ${res.status}`);
     }
-    return Promise.reject(res);
 }
 
 document.getElementById('logout-btn').onclick = () => { localStorage.clear(); window.location.href = '/'; };
 document.getElementById('add-btn').onclick = () => openModal();
 
+const prevBtn = document.getElementById('prev-page');
+const nextBtn = document.getElementById('next-page');
+
+if (prevBtn && nextBtn) {
+    prevBtn.onclick = () => {
+        if (currentPage > 1) {
+            currentPage--;
+            loadData();
+        }
+    };
+    nextBtn.onclick = () => {
+        currentPage++;
+        loadData();
+    };
+}
+
+function updatePaginationUI(meta) {
+    const controls = document.getElementById('pagination-controls');
+    if (!controls) return;
+
+    controls.classList.remove('hidden');
+    
+    document.getElementById('total-records').innerText = meta.total;
+    document.getElementById('current-page').innerText = meta.page;
+
+    const totalPages = Math.ceil(meta.total / meta.limit);
+
+    prevBtn.disabled = meta.page <= 1;
+    nextBtn.disabled = meta.page >= totalPages;
+}
+
+function hidePaginationUI() {
+    const controls = document.getElementById('pagination-controls');
+    if (controls) controls.classList.add('hidden');
+}
+
 function switchTab(tab) {
     currentTab = tab;
+    currentPage = 1; 
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     event.currentTarget.classList.add('active');
     document.getElementById('add-btn').classList.toggle('hidden', tab === 'audit');
@@ -70,16 +112,21 @@ async function loadData() {
     try {
         if (currentTab === 'flights') {
             await loadResources();
-            const data = await api('/api/admin/flights');
-            currentData = data.flights;
-            renderFlights(data.flights, container);
+            const data = await api(`/api/admin/flights?page=${currentPage}&limit=${pageSize}`);
+            
+            currentData = data.data; 
+            renderFlights(data.data, container);
+            updatePaginationUI(data);
+
         } else if (currentTab === 'users') {
             const data = await api('/api/admin/users');
             currentData = data.users;
             renderUsers(data.users, container);
+            hidePaginationUI();
         } else {
             const data = await api('/api/admin/audit');
             renderAudit(data.logs, container);
+            hidePaginationUI();
         }
     } catch (e) { 
         container.innerHTML = '<div style="text-align:center; color:#ef4444; padding:20px"><i class="fa-solid fa-circle-exclamation"></i> Ошибка загрузки данных</div>'; 
@@ -161,7 +208,6 @@ function renderFlights(list, container) {
     });
 
     container.innerHTML = html + '</tbody></table>';
-
 }
 
 function renderUsers(list, container) {
@@ -347,8 +393,7 @@ async function submitModal() {
         closeModal();
         loadData();
     } catch(e) { 
-        alert('Ошибка при сохранении'); 
-        console.error(e);
+        alert('Ошибка: ' + e.message); 
     }
 }
 
@@ -357,7 +402,9 @@ async function removeItem(id) {
         try {
             await api(`/api/admin/${currentTab}/${id}`, 'DELETE');
             loadData();
-        } catch(e) { alert('Ошибка удаления'); }
+        } catch(e) { 
+             alert('Ошибка удаления: ' + e.message); 
+        }
     }
 }
 

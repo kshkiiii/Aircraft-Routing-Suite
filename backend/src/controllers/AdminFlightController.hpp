@@ -54,8 +54,12 @@ public:
             dto.pilotId = x["pilot_id"].i();
             dto.copilotId = x["copilot_id"].i();
 
-            flightService->createFlight(dto, getUsername(token));
-            return crow::response(201, "Created");
+            try {
+                flightService->createFlight(dto, getUsername(token));
+                return crow::response(201, "Created");
+            } catch (const exception& e) {
+                return crow::response(400, e.what());
+            }
         });
 
         CROW_ROUTE(app, "/api/admin/flights/<int>").methods("PUT"_method)
@@ -78,8 +82,12 @@ public:
             dto.pilotId = x["pilot_id"].i();
             dto.copilotId = x["copilot_id"].i();
 
-            flightService->updateFlight(id, dto, getUsername(token));
-            return crow::response(200, "Updated");
+            try {
+                flightService->updateFlight(id, dto, getUsername(token));
+                return crow::response(200, "Updated");
+            } catch (const exception& e) {
+                return crow::response(400, e.what());
+            }
         });
 
         CROW_ROUTE(app, "/api/admin/flights/<int>").methods("DELETE"_method)
@@ -97,17 +105,21 @@ public:
             if (token.empty()) return crow::response(401);
             if (token.find("admin:") != 0 && token.find("operator:") != 0) return crow::response(403);
 
-            auto flights = flightService->getPrivateFlights();
+            int page = 1;
+            int limit = 20;
             
-            vector<crow::json::wvalue> list;
-            for (const auto& f : flights) {
-                list.push_back(privateFlightToJson(f));
+            if (req.url_params.get("page") != nullptr) {
+                try { page = stoi(req.url_params.get("page")); } catch(...) {}
             }
+            if (req.url_params.get("limit") != nullptr) {
+                try { limit = stoi(req.url_params.get("limit")); } catch(...) {}
+            }
+
+            auto paginated = flightService->getPrivateFlights(page, limit);
             
-            crow::json::wvalue result;
-            result["flights"] = std::move(list);
+            crow::json::wvalue json = paginatedFlightsToJson(paginated);
             
-            return crow::response(200, result);
+            return crow::response(200, json);
         });
 
         CROW_ROUTE(app, "/api/admin/users")
