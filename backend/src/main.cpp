@@ -21,7 +21,7 @@ int main() {
     for (int i = 0; i < 10; ++i) {
         try {
             if (db->get_connection()->is_open()) {
-                cout << "БД подключена!" << endl;
+                cout << "База данных подключена" << endl;
                 break;
             }
         } catch (...) {
@@ -50,12 +50,29 @@ int main() {
         res.set_static_file_info("static/index.html");
         res.end();
     });
+
+    CROW_ROUTE(app, "/login")([](const crow::request&, crow::response& res){
+        res.set_static_file_info("static/login.html");
+        res.end();
+    });
     
     CROW_ROUTE(app, "/admin")([](const crow::request&, crow::response& res){
         res.set_static_file_info("static/admin.html");
         res.end();
     });
 
-    cout << "Сервер запущен (SSL enabled, Port 8080)" << endl;
+    CROW_ROUTE(app, "/css/<string>")
+    ([](const crow::request&, crow::response& res, string filename){
+        res.set_static_file_info("static/css/" + filename);
+        res.end();
+    });
+
+    CROW_ROUTE(app, "/js/<string>")
+    ([](const crow::request&, crow::response& res, string filename){
+        res.set_static_file_info("static/js/" + filename);
+        res.end();
+    });
+
+    cout << "Сервер запущен на порту 8080" << endl;
     app.port(8080).multithreaded().run();
 }
